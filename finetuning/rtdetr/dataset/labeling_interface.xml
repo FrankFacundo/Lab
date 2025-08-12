@@ -1,0 +1,24 @@
+<View>
+  <Image name="image" value="$image" zoom="true" zoomControl="true"/>
+  <RectangleLabels name="label" toName="image">
+    <Label value="caption" background="#FFA39E"/>
+    <Label value="footnote" background="#D4380D"/>
+    <Label value="formula" background="#FFC069"/>
+    <Label value="list_item" background="#AD8B00"/>
+    <Label value="page_footer" background="#D3F261"/>
+    <Label value="page_header" background="#389E0D"/>
+    <Label value="picture" background="#5CDBD3"/>
+    <Label value="section_header" background="#096DD9"/>
+    <Label value="table" background="#ADC6FF"/>
+    <Label value="text" background="#9254DE"/>
+    <Label value="title" background="#F759AB"/>
+    <Label value="document_index" background="#FFA39E"/>
+    <Label value="code" background="#D4380D"/>
+    <Label value="checkbox_selected" background="#FFC069"/>
+    <Label value="checkbox_unselected" background="#AD8B00"/>
+    <Label value="form" background="#D3F261"/>
+    <Label value="key_value_region" background="#389E0D"/>
+    <Label value="paragraph" background="#5CDBD3"/>
+    <Label value="reference" background="#096DD9"/>
+  </RectangleLabels>
+</View>

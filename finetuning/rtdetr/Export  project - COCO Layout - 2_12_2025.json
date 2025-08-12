@@ -1,0 +1,110 @@
+{
+  "data_row": {
+    "id": "cm72g49yv2a0o071382dh81k2",
+    "external_id": "Screenshot from 2025-02-12 22-47-03.png",
+    "row_data": "https://storage.labelbox.com/ckol9srk1401z0y5q7mp763x5%2Fb5e1da35-686d-85e1-c2e4-e00665a6f78b-Screenshot%20from%202025-02-12%2022-47-03.png?Expires=1739484681626&KeyName=labelbox-assets-key-3&Signature=OjxXXSx8vv5JTAy6VpOndO1bxAw",
+    "details": {
+      "dataset_id": "cm72g42wz000e0726znubzldp",
+      "dataset_name": "COCO Layout",
+      "created_at": "2025-02-12T21:51:32.493+00:00",
+      "updated_at": "2025-02-12T21:51:33.159+00:00",
+      "last_activity_at": "2025-02-12T22:10:26.456+00:00",
+      "created_by": "frank.facundo@telecom-paris.fr"
+    }
+  },
+  "media_attributes": {
+    "height": 2238,
+    "width": 1718,
+    "asset_type": "image",
+    "mime_type": "image/png",
+    "exif_rotation": "1"
+  },
+  "projects": {
+    "cm72frjaw02lm070e975w9od3": {
+      "name": "COCO Layout",
+      "labels": [
+        {
+          "label_kind": "Default",
+          "version": "1.0.0",
+          "id": "cm72ghxms039i07ie6dyhhx59",
+          "label_details": {
+            "created_at": "2025-02-12T22:10:26.000+00:00",
+            "updated_at": "2025-02-12T22:10:26.000+00:00",
+            "created_by": "frank.facundo@telecom-paris.fr",
+            "content_last_updated_at": "2025-02-12T22:10:26.079+00:00",
+            "reviews": []
+          },
+          "annotations": {
+            "objects": [
+              {
+                "feature_id": "cm72gr5jo00042v6s085k1qaz",
+                "feature_schema_id": "cm72gqrjc08t6074k7jsyded2",
+                "name": "Formula",
+                "value": "formula",
+                "annotation_kind": "ImageBoundingBox",
+                "classifications": [],
+                "bounding_box": {
+                  "top": 1074.0,
+                  "left": 135.0,
+                  "height": 678.0,
+                  "width": 498.0
+                }
+              },
+              {
+                "feature_id": "cm72grl6v00072v6smdt5k14m",
+                "feature_schema_id": "cm72gqrjc08t6074k7jsyded2",
+                "name": "Formula",
+                "value": "formula",
+                "annotation_kind": "ImageBoundingBox",
+                "classifications": [],
+                "bounding_box": {
+                  "top": 1805.0,
+                  "left": 142.0,
+                  "height": 119.0,
+                  "width": 238.0
+                }
+              },
+              {
+                "feature_id": "cm72gs2h7000a2v6se1043qjt",
+                "feature_schema_id": "cm72gqrjc08te074k5zjf3s51",
+                "name": "Picture",
+                "value": "picture",
+                "annotation_kind": "ImageBoundingBox",
+                "classifications": [],
+                "bounding_box": {
+                  "top": 357.0,
+                  "left": 92.0,
+                  "height": 317.0,
+                  "width": 741.0
+                }
+              },
+              {
+                "feature_id": "cm72gsbw5000d2v6sw0w4h1on",
+                "feature_schema_id": "cm72gqrjc08te074k5zjf3s51",
+                "name": "Picture",
+                "value": "picture",
+                "annotation_kind": "ImageBoundingBox",
+                "classifications": [],
+                "bounding_box": {
+                  "top": 521.0,
+                  "left": 916.0,
+                  "height": 453.0,
+                  "width": 672.0
+                }
+              }
+            ],
+            "classifications": [],
+            "relationships": []
+          },
+          "z_order": [
+            "cm72gr5jo00042v6s085k1qaz",
+            "cm72grl6v00072v6smdt5k14m",
+            "cm72gs2h7000a2v6se1043qjt",
+            "cm72gsbw5000d2v6sw0w4h1on"
+          ]
+        }
+      ],
+      "project_tags": []
+    }
+  }
+}
