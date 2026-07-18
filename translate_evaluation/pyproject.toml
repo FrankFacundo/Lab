@@ -1,0 +1,35 @@
+[project]
+name = "mt-meta-eval"
+version = "0.1.0"
+description = "Meta-evaluation of MT evaluation methods: score the same model outputs with many metrics and measure where the metrics disagree."
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "torch>=2.4",
+    "transformers>=4.56,<5",
+    "accelerate>=1.0",
+    "datasets>=3.0",
+    "sentencepiece",
+    "pillow",
+    "sacrebleu[ja,ko]>=2.4",
+    "unbabel-comet>=2.2.4",
+    "pandas>=2.0",
+    "scipy>=1.11",
+    "tabulate",
+    "huggingface_hub",
+    "tqdm",
+    # torchmetrics (via unbabel-comet) still imports pkg_resources, removed in 81
+    "setuptools<81",
+]
+
+[project.optional-dependencies]
+judge = ["anthropic>=0.40"]
+
+[project.scripts]
+mteval = "mt_meta_eval.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mt_meta_eval"]
