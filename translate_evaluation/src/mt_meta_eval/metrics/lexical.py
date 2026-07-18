@@ -10,9 +10,19 @@ character-based and safe everywhere; TER runs with asian_support.
 """
 
 from sacrebleu.metrics import BLEU, CHRF, TER
+from tqdm import tqdm
 
 from ..config import target_code
 from .base import Metric
+
+
+def _sentence_scores(metric, hypotheses, references, desc: str) -> list[float]:
+    return [
+        metric.sentence_score(h, [r]).score
+        for h, r in tqdm(
+            zip(hypotheses, references), total=len(hypotheses), desc=desc, leave=False
+        )
+    ]
 
 
 def _bleu_tokenizer(pair: str | None) -> str:
@@ -37,10 +47,7 @@ class BleuMetric(Metric):
 
     def score_segments(self, sources, hypotheses, references):
         _, segment_metric = self._metrics()
-        return [
-            segment_metric.sentence_score(h, [r]).score
-            for h, r in zip(hypotheses, references)
-        ]
+        return _sentence_scores(segment_metric, hypotheses, references, "bleu segments")
 
     def score_corpus(self, sources, hypotheses, references):
         corpus_metric, _ = self._metrics()
@@ -54,10 +61,7 @@ class ChrfMetric(Metric):
         self.metric = CHRF(word_order=2)
 
     def score_segments(self, sources, hypotheses, references):
-        return [
-            self.metric.sentence_score(h, [r]).score
-            for h, r in zip(hypotheses, references)
-        ]
+        return _sentence_scores(self.metric, hypotheses, references, "chrf++ segments")
 
     def score_corpus(self, sources, hypotheses, references):
         return self.metric.corpus_score(hypotheses, [references]).score
@@ -71,10 +75,7 @@ class TerMetric(Metric):
         self.metric = TER(normalized=True, asian_support=True)
 
     def score_segments(self, sources, hypotheses, references):
-        return [
-            self.metric.sentence_score(h, [r]).score
-            for h, r in zip(hypotheses, references)
-        ]
+        return _sentence_scores(self.metric, hypotheses, references, "ter segments")
 
     def score_corpus(self, sources, hypotheses, references):
         return self.metric.corpus_score(hypotheses, [references]).score

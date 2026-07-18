@@ -50,6 +50,16 @@ Accept the license/terms pages once on Hugging Face:
 
 ## Run
 
+One-shot launcher (progress bars for every stage; interrupt + relaunch freely —
+data prep is kept, translation resumes mid-pair, scores are cached):
+
+```bash
+./run_eval.sh                                     # default: en-es_MX + es_MX-en
+DATASET=wmt25 PAIRS="en-ja_JP" ./run_eval.sh      # any dataset/pairs/metrics
+```
+
+Or step by step:
+
 ```bash
 # 1. Data (default dataset: wmt24pp; add --dataset wmt25 for WMT25)
 .venv/bin/mteval prepare                       # full ~960 segments/pair

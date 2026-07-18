@@ -49,9 +49,13 @@ class MetricX24Metric(Metric):
             f"source: {s} candidate: {h} reference: {r}"
             for s, h, r in zip(sources, hypotheses, references)
         ]
+        from tqdm import tqdm
+
         scores: list[float] = []
         with torch.no_grad():
-            for i in range(0, len(texts), self.batch_size):
+            for i in tqdm(
+                range(0, len(texts), self.batch_size), desc="metricx24", leave=False
+            ):
                 batch = tokenizer(
                     texts[i : i + self.batch_size],
                     max_length=self.max_input_length,
