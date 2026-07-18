@@ -1,4 +1,4 @@
-"""tencent/Hy-MT2-1.8B — decoder-only translation model.
+"""tencent/Hy-MT2 family (1.8B / 7B) — decoder-only translation models.
 
 Prompt and decoding parameters follow the model card:
 sampling with temperature=0.7, top_p=0.6, top_k=20, repetition_penalty=1.05.
@@ -18,19 +18,21 @@ PROMPT = (
 
 
 class HyMT2Translator(Translator):
-    key = "hy-mt2"
-    model_id = "tencent/Hy-MT2-1.8B"
-
-    def __init__(self, max_new_tokens: int = 1024):
+    def __init__(self, key: str, source: str, max_new_tokens: int = 1024):
+        self.key = key
         self.device = pick_device()
         self.max_new_tokens = max_new_tokens
+        # NOTE: transformers warns about the Mistral-style pretokenizer regex here;
+        # its fix_mistral_regex=True patch crashes on this tokenizer layout, and all
+        # results are produced with the stock tokenizer (as shipped on the hub), so
+        # the warning is accepted deliberately for consistency across model sizes.
         self.tokenizer = AutoTokenizer.from_pretrained(
-            self.model_id, trust_remote_code=True, padding_side="left"
+            source, trust_remote_code=True, padding_side="left"
         )
         if self.tokenizer.pad_token_id is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model = AutoModelForCausalLM.from_pretrained(
-            self.model_id, dtype=pick_dtype(self.device), trust_remote_code=True
+            source, dtype=pick_dtype(self.device), trust_remote_code=True
         ).to(self.device)
         self.model.eval()
         torch.manual_seed(SEED)

@@ -19,8 +19,7 @@ class Translator(ABC):
     """A translation model wrapper. `key` names the output directory."""
 
     key: str
-    model_id: str
 
     @abstractmethod
     def translate_batch(self, sources: list[str], pair: str) -> list[str]:
-        """Translate a batch of source segments for a WMT24++ pair like 'en-de_DE'."""
+        """Translate a batch of source segments for a pair like 'en-de_DE' or 'es-fr'."""

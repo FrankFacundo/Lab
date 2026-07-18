@@ -14,7 +14,16 @@ import json
 import random
 import urllib.request
 
-from .config import SEED, WMT24PP_DATASET, WMT25_URL, data_dir
+from .config import (
+    FLORES_CODES,
+    FLORES_DATASET,
+    SEED,
+    WMT24PP_DATASET,
+    WMT25_URL,
+    data_dir,
+    source_code,
+    target_code,
+)
 
 
 def _wmt24pp_rows(pair: str) -> list[dict]:
@@ -78,6 +87,47 @@ def _wmt25_rows(pair: str) -> list[dict]:
     return rows
 
 
+def _flores_lang(code: str):
+    from datasets import load_dataset
+
+    try:
+        cfg = FLORES_CODES[code]
+    except KeyError:
+        raise ValueError(
+            f"No FLORES config registered for {code!r}; add it to FLORES_CODES "
+            "in config.py (flores200 pairs use bare codes, e.g. 'es-fr')"
+        ) from None
+    try:
+        return load_dataset(FLORES_DATASET, cfg, split="devtest")
+    except Exception as e:
+        if "gated" in str(e).lower():
+            raise RuntimeError(
+                f"{FLORES_DATASET} is gated (auto-accept): while logged in to "
+                f"Hugging Face, click Agree at https://huggingface.co/datasets/{FLORES_DATASET}"
+            ) from e
+        raise
+
+
+def _flores_rows(pair: str) -> list[dict]:
+    """FLORES+ devtest is multi-way parallel: join source/target languages by id."""
+    src_ds = _flores_lang(source_code(pair))
+    tgt_ds = _flores_lang(target_code(pair))
+    tgt_by_id = {r["id"]: r["text"] for r in tgt_ds}
+    return [
+        {
+            "segment_id": r["id"],
+            "domain": r.get("domain", ""),
+            "source": r["text"],
+            "reference": tgt_by_id[r["id"]],
+        }
+        for r in src_ds
+        if r["id"] in tgt_by_id
+    ]
+
+
+_LOADERS = {"wmt24pp": _wmt24pp_rows, "wmt25": _wmt25_rows, "flores200": _flores_rows}
+
+
 def prepare_pair(
     dataset: str, pair: str, limit: int | None = None, overwrite: bool = False
 ) -> int:
@@ -87,7 +137,7 @@ def prepare_pair(
         print(f"[data] {dataset}/{pair}: exists with {n} segments, skipping (--overwrite to redo)")
         return n
 
-    rows = _wmt24pp_rows(pair) if dataset == "wmt24pp" else _wmt25_rows(pair)
+    rows = _LOADERS[dataset](pair)
 
     if limit is not None and limit < len(rows):
         rng = random.Random(SEED)

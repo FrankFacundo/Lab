@@ -89,7 +89,8 @@ def segment_correlations(seg_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def preference_agreement(seg_df: pd.DataFrame) -> pd.DataFrame:
-    """Per segment, each metric prefers one model; how often do metrics agree?"""
+    """Per segment and model duel, each metric prefers one model; how often do
+    two metrics pick the same winner? Pooled over all model pairs."""
     rows = []
     for dataset, ds_df in _oriented(seg_df).groupby("dataset"):
         wide = ds_df.pivot_table(
@@ -99,16 +100,19 @@ def preference_agreement(seg_df: pd.DataFrame) -> pd.DataFrame:
         )
         metrics = sorted({m for m, _ in wide.columns})
         models = sorted({mod for _, mod in wide.columns})
-        if len(models) != 2:
+        if len(models) < 2:
             continue
 
-        prefs = {}
-        for m in metrics:
-            try:
-                delta = wide[(m, models[0])] - wide[(m, models[1])]
-            except KeyError:
-                continue
-            prefs[m] = np.sign(delta)
+        # sign of the score difference for every (metric, model duel)
+        prefs: dict[str, list] = {m: [] for m in metrics}
+        for ma, mb in itertools.combinations(models, 2):
+            for m in metrics:
+                try:
+                    delta = wide[(m, ma)] - wide[(m, mb)]
+                except KeyError:
+                    continue
+                prefs[m].append(np.sign(delta))
+        prefs = {m: pd.concat(v, ignore_index=True) for m, v in prefs.items() if v}
 
         for m1, m2 in itertools.combinations(prefs.keys(), 2):
             both = pd.concat([prefs[m1], prefs[m2]], axis=1, keys=["a", "b"]).dropna()
@@ -120,7 +124,7 @@ def preference_agreement(seg_df: pd.DataFrame) -> pd.DataFrame:
                     "dataset": dataset,
                     "metric_a": m1,
                     "metric_b": m2,
-                    "n_segments": len(both),
+                    "n_duels": len(both),
                     "agreement": round(float((both["a"] == both["b"]).mean()), 3),
                 }
             )

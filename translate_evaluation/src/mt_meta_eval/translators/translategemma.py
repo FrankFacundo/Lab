@@ -1,4 +1,4 @@
-"""google/translategemma-4b-it — Gemma 3-based translation model (gated repo).
+"""google/translategemma family (4b-it / 12b-it) — Gemma 3-based translation models.
 
 The chat template takes source/target language codes per content block; the
 model card recommends greedy decoding (do_sample=False).
@@ -12,16 +12,15 @@ from .base import Translator, pick_device, pick_dtype
 
 
 class TranslateGemmaTranslator(Translator):
-    key = "translategemma"
-    model_id = "google/translategemma-4b-it"
-
-    def __init__(self, max_new_tokens: int = 1024):
+    def __init__(self, key: str, source: str, max_new_tokens: int = 1024):
+        self.key = key
         self.device = pick_device()
         self.max_new_tokens = max_new_tokens
-        self.processor = AutoProcessor.from_pretrained(self.model_id)
+        # stock tokenizer kept deliberately (see note in hy_mt2.py)
+        self.processor = AutoProcessor.from_pretrained(source)
         self.processor.tokenizer.padding_side = "left"
         self.model = AutoModelForImageTextToText.from_pretrained(
-            self.model_id, dtype=pick_dtype(self.device)
+            source, dtype=pick_dtype(self.device)
         ).to(self.device)
         self.model.eval()
 

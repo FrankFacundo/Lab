@@ -15,14 +15,20 @@ both which model wins and where the metrics themselves disagree.
 |---|---|---|---|
 | `wmt24pp` | sentence/segment | en→de es fr ja ru zh | ~960 segs/pair, human post-edited refs |
 | `wmt25` | **document** | en→cs ja ko ru uk zh | 87 docs/pair; only 16/31 pairs have human refs (`refA`) — en→de has none. cs→de, cs→uk, ja→zh also selectable |
+| `flores200` | sentence | en↔es, en↔fr, **es↔fr** | FLORES+ devtest (1012 sents), multi-way parallel → any direction incl. non-English; pairs use bare codes (`es-fr`). **Gated (auto-accept)**: click Agree at [openlanguagedata/flores_plus](https://huggingface.co/datasets/openlanguagedata/flores_plus). All non-English sides are translated from English (translationese) |
 
-**Models under test** (full precision, bfloat16):
+**Models under test** (full precision, bfloat16; two sizes per family):
 
-- [tencent/Hy-MT2-1.8B](https://huggingface.co/tencent/Hy-MT2-1.8B) — sampling per model card (T=0.7, top_p=0.6, top_k=20, rep. penalty 1.05)
-- [google/translategemma-4b-it](https://huggingface.co/google/translategemma-4b-it) — greedy per model card
+| Key | Model | Decoding (per model card) |
+|---|---|---|
+| `hy-mt2-1.8b` | [tencent/Hy-MT2-1.8B](https://huggingface.co/tencent/Hy-MT2-1.8B) | sampling T=0.7, top_p=0.6, top_k=20, rep. 1.05 |
+| `hy-mt2-7b` | [tencent/Hy-MT2-7B](https://huggingface.co/tencent/Hy-MT2-7B) | same |
+| `translategemma-4b` | [google/translategemma-4b-it](https://huggingface.co/google/translategemma-4b-it) | greedy |
+| `translategemma-12b` | [google/translategemma-12b-it](https://huggingface.co/google/translategemma-12b-it) | greedy |
 
-Each model runs with its own recommended decoding settings (as the papers do);
-both are configurable in `src/mt_meta_eval/translators/`.
+Weights load from local copies under `/Users/frankfacundo/Models/<org>/<name>`
+when present (all four are), falling back to the HF hub (`MODELS_ROOT` in
+`config.py`). Decoding settings live in `src/mt_meta_eval/translators/`.
 
 **Evaluation methods under evaluation:**
 
@@ -45,8 +51,10 @@ hf auth login          # needed for the gated TranslateGemma + CometKiwi repos
 ```
 
 Accept the license/terms pages once on Hugging Face:
-[google/translategemma-4b-it](https://huggingface.co/google/translategemma-4b-it) and
-[Unbabel/wmt22-cometkiwi-da](https://huggingface.co/Unbabel/wmt22-cometkiwi-da).
+[google/translategemma-4b-it](https://huggingface.co/google/translategemma-4b-it),
+[Unbabel/wmt22-cometkiwi-da](https://huggingface.co/Unbabel/wmt22-cometkiwi-da) and
+[openlanguagedata/flores_plus](https://huggingface.co/datasets/openlanguagedata/flores_plus)
+(for the `flores200` dataset).
 
 ## Run
 
@@ -54,8 +62,8 @@ One-shot launcher (progress bars for every stage; interrupt + relaunch freely �
 data prep is kept, translation resumes mid-pair, scores are cached):
 
 ```bash
-./run_eval.sh                                     # default: en-es_MX + es_MX-en
-DATASET=wmt25 PAIRS="en-ja_JP" ./run_eval.sh      # any dataset/pairs/metrics
+./run_eval.sh   # default: wmt24pp en<->es  +  flores200 (en<->es, en<->fr, es<->fr)
+DATASET=wmt25 PAIRS="en-ja_JP" ./run_eval.sh   # or a single custom evaluation
 ```
 
 Or step by step:

@@ -13,8 +13,37 @@ WMT25_URL = (
     "https://github.com/wmt-conference/wmt25-general-mt"
     "/raw/refs/heads/main/data/wmt25-genmt.jsonl"
 )
+# FLORES+ (successor of FLORES-200), maintained by OLDI. Gated (auto-accept):
+# click "Agree" once at https://huggingface.co/datasets/openlanguagedata/flores_plus
+FLORES_DATASET = "openlanguagedata/flores_plus"
 
-DATASETS = ["wmt24pp", "wmt25"]
+DATASETS = ["wmt24pp", "wmt25", "flores200"]
+
+# flores200 pairs use bare language codes ("es-fr"); this maps them to
+# FLORES+ configs. Multi-way parallel, so any combination of these works.
+FLORES_CODES = {
+    "en": "eng_Latn",
+    "es": "spa_Latn",
+    "fr": "fra_Latn",
+    "de": "deu_Latn",
+    "it": "ita_Latn",
+    "pt": "por_Latn",
+    "cs": "ces_Latn",
+    "pl": "pol_Latn",
+    "nl": "nld_Latn",
+    "ru": "rus_Cyrl",
+    "uk": "ukr_Cyrl",
+    "ar": "arb_Arab",
+    "he": "heb_Hebr",
+    "tr": "tur_Latn",
+    "hi": "hin_Deva",
+    "ja": "jpn_Jpan",
+    "ko": "kor_Hang",
+    "zh": "zho_Hans",
+    "vi": "vie_Latn",
+    "th": "tha_Thai",
+    "id": "ind_Latn",
+}
 
 # wmt24pp: sentence/segment-level, en->X, human post-edited references.
 # wmt25: document-level; only pairs with a human reference (refA) are usable —
@@ -37,14 +66,39 @@ DEFAULT_PAIRS = {
         "en-uk_UA",
         "en-zh_CN",
     ],
+    # multi-way parallel: includes the non-English es<->fr directions
+    "flores200": ["en-es", "es-en", "en-fr", "fr-en", "es-fr", "fr-es"],
 }
 
-# Document-level WMT25 needs a much larger generation budget than WMT24++.
-DEFAULT_MAX_NEW_TOKENS = {"wmt24pp": 1024, "wmt25": 4096}
+# Document-level WMT25 needs a much larger generation budget than WMT24++;
+# FLORES sentences are short.
+DEFAULT_MAX_NEW_TOKENS = {"wmt24pp": 1024, "wmt25": 4096, "flores200": 512}
 
 # English language names used in Hy-MT2's translation prompt.
 TARGET_LANGUAGE_NAMES = {
+    # bare codes (flores200 pairs)
     "en": "English",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "it": "Italian",
+    "pt": "Portuguese",
+    "cs": "Czech",
+    "pl": "Polish",
+    "nl": "Dutch",
+    "ru": "Russian",
+    "uk": "Ukrainian",
+    "ar": "Arabic",
+    "he": "Hebrew",
+    "tr": "Turkish",
+    "hi": "Hindi",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "zh": "Simplified Chinese",
+    "vi": "Vietnamese",
+    "th": "Thai",
+    "id": "Indonesian",
+    # locale codes (wmt24pp / wmt25 pairs)
     "ar_EG": "Arabic",
     "bho_IN": "Bhojpuri",
     "bn_BD": "Bengali",
@@ -92,6 +146,22 @@ TARGET_LANGUAGE_NAMES = {
 }
 
 SEED = 42
+
+# Models under test. Weights are loaded from MODELS_ROOT/<repo_id> when that
+# local copy exists (it does for all four), falling back to the HF hub id.
+MODELS_ROOT = Path("/Users/frankfacundo/Models")
+
+MODEL_REGISTRY = {
+    "hy-mt2-1.8b": ("hy_mt2", "tencent/Hy-MT2-1.8B"),
+    "hy-mt2-7b": ("hy_mt2", "tencent/Hy-MT2-7B"),
+    "translategemma-4b": ("translategemma", "google/translategemma-4b-it"),
+    "translategemma-12b": ("translategemma", "google/translategemma-12b-it"),
+}
+
+
+def model_source(repo_id: str) -> str:
+    local = MODELS_ROOT / repo_id
+    return str(local) if (local / "config.json").exists() else repo_id
 
 
 def data_dir(dataset: str) -> Path:

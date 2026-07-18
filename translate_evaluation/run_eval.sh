@@ -1,39 +1,60 @@
 #!/usr/bin/env bash
-# Full evaluation pipeline: prepare -> translate (both models) -> score -> analyze.
+# Full evaluation pipeline: prepare -> translate (all models) -> score, per
+# dataset, then one combined analyze.
+#
+# Default: wmt24pp en<->es  AND  flores200 (en<->es, en<->fr, es<->fr),
+# with all four models (Hy-MT2 1.8B/7B, TranslateGemma 4B/12B) loaded from
+# /Users/frankfacundo/Models when present.
+#
+# Overrides:
+#   DATASET=wmt25 PAIRS="en-ja_JP" ./run_eval.sh      # single custom evaluation
+#   MODELS="hy-mt2-7b:8 translategemma-12b:4" ./run_eval.sh   # subset, key:batch
+#   MTEVAL=echo ./run_eval.sh                          # dry run
 #
 # Safe to interrupt (Ctrl-C) and re-run at any time: prepared data is kept,
 # translation resumes mid-pair, and already-scored results are cached.
-#
-# Progress bars: tqdm per translation batch, per lexical metric, and
-# Lightning's bar for COMET. Override defaults via env vars, e.g.:
-#   PAIRS="en-de_DE" DATASET=wmt24pp ./run_eval.sh
 set -euo pipefail
 cd "$(dirname "$0")"
 
-DATASET=${DATASET:-wmt24pp}
-PAIRS=${PAIRS:-"en-es_MX es_MX-en"}
 METRICS=${METRICS:-"bleu chrf++ ter comet22 cometkiwi22"}
-HY_BATCH=${HY_BATCH:-16}
-GEMMA_BATCH=${GEMMA_BATCH:-8}
-MTEVAL=.venv/bin/mteval
+MODELS=${MODELS:-"hy-mt2-1.8b:16 hy-mt2-7b:8 translategemma-4b:8 translategemma-12b:4"}
+MODEL_KEYS=$(sed -E 's/:[0-9]+//g' <<<"$MODELS")
+MTEVAL=${MTEVAL:-.venv/bin/mteval}
 
-# shellcheck disable=SC2086  # word-splitting of $PAIRS/$METRICS is intended
-{
-  echo "== 1/5 prepare ($DATASET: $PAIRS) =="
-  $MTEVAL prepare --dataset "$DATASET" --pairs $PAIRS
+# Each evaluation is "dataset|pairs"; empty pairs = that dataset's defaults.
+if [[ -n "${DATASET:-}" || -n "${PAIRS:-}" ]]; then
+  EVALS=("${DATASET:-wmt24pp}|${PAIRS:-}")
+else
+  EVALS=(
+    "wmt24pp|en-es_MX es_MX-en"
+    "flores200|"   # defaults: en-es es-en en-fr fr-en es-fr fr-es
+  )
+fi
 
-  echo "== 2/5 translate hy-mt2 =="
-  $MTEVAL translate --dataset "$DATASET" --pairs $PAIRS --model hy-mt2 --batch-size "$HY_BATCH"
+for spec in "${EVALS[@]}"; do
+  ds=${spec%%|*}
+  pairs=${spec#*|}
+  args=(--dataset "$ds")
+  # shellcheck disable=SC2206  # word-splitting of $pairs is intended
+  [[ -n "$pairs" ]] && args+=(--pairs $pairs)
 
-  echo "== 3/5 translate translategemma =="
-  $MTEVAL translate --dataset "$DATASET" --pairs $PAIRS --model translategemma --batch-size "$GEMMA_BATCH"
+  echo "==== [$ds] prepare ===="
+  $MTEVAL prepare "${args[@]}"
 
-  echo "== 4/5 score ($METRICS) =="
-  $MTEVAL score --dataset "$DATASET" --pairs $PAIRS --metrics $METRICS
+  for mspec in $MODELS; do
+    model=${mspec%%:*}
+    batch=${mspec##*:}
+    echo "==== [$ds] translate $model (batch $batch) ===="
+    $MTEVAL translate "${args[@]}" --model "$model" --batch-size "$batch"
+  done
 
-  echo "== 5/5 analyze =="
-  $MTEVAL analyze
-}
+  echo "==== [$ds] score ($METRICS) ===="
+  # shellcheck disable=SC2086
+  $MTEVAL score "${args[@]}" --models $MODEL_KEYS --metrics $METRICS
+done
+
+echo "==== analyze ===="
+$MTEVAL analyze
 
 echo
 echo "Done. Report: outputs/report.md"
