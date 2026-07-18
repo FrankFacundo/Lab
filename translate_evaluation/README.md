@@ -39,6 +39,7 @@ when present (all four are), falling back to the HF hub (`MODELS_ROOT` in
 | `ter` | lexical edit rate | 0–100+ ↓ | sacrebleu |
 | `comet22` | neural, reference-based | 0–1 ↑ | Unbabel/wmt22-comet-da |
 | `cometkiwi22` | neural, reference-free QE | 0–1 ↑ | **gated**: accept terms at [Unbabel/wmt22-cometkiwi-da](https://huggingface.co/Unbabel/wmt22-cometkiwi-da) |
+| `script_purity` | rule-based, ours | 0–100 ↑ | penalizes characters from scripts foreign to the target language (25 pts/char); Latin + punctuation + scripts in the reference always allowed. Built to expose CJK-intrusion artifacts |
 | `metricx24` | neural, hybrid (optional) | 0–25 ↓ | what the TranslateGemma paper uses; needs `pip install "git+https://github.com/google-research/metricx.git"` |
 | `llm_judge` | LLM-as-judge (optional) | 0–100 ↑ | GEMBA-DA-style, Claude via Message Batches API; needs `ANTHROPIC_API_KEY` |
 

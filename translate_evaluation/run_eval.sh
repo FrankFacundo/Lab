@@ -16,7 +16,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-METRICS=${METRICS:-"bleu chrf++ ter comet22 cometkiwi22"}
+METRICS=${METRICS:-"bleu chrf++ ter comet22 cometkiwi22 script_purity"}
 MODELS=${MODELS:-"hy-mt2-1.8b:16 hy-mt2-7b:8 translategemma-4b:8 translategemma-12b:4"}
 MODEL_KEYS=$(sed -E 's/:[0-9]+//g' <<<"$MODELS")
 MTEVAL=${MTEVAL:-.venv/bin/mteval}

@@ -15,6 +15,7 @@ dependencies = [
     "pandas>=2.0",
     "scipy>=1.11",
     "tabulate",
+    "regex",
     "huggingface_hub",
     "tqdm",
     # torchmetrics (via unbabel-comet) still imports pkg_resources, removed in 81

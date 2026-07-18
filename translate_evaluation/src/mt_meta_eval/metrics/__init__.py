@@ -1,6 +1,6 @@
 from .base import Metric
 
-DEFAULT_METRICS = ["bleu", "chrf++", "ter", "comet22", "cometkiwi22"]
+DEFAULT_METRICS = ["bleu", "chrf++", "ter", "comet22", "cometkiwi22", "script_purity"]
 ALL_METRICS = DEFAULT_METRICS + ["metricx24", "llm_judge"]
 
 # Metadata needed by the analysis step without instantiating (heavy) metrics.
@@ -10,6 +10,7 @@ HIGHER_IS_BETTER = {
     "ter": False,
     "comet22": True,
     "cometkiwi22": True,
+    "script_purity": True,
     "metricx24": False,
     "llm_judge": True,
 }
@@ -36,6 +37,10 @@ def get_metric(key: str, **kwargs) -> Metric:
         from .comet_metrics import CometKiwi22Metric
 
         return CometKiwi22Metric(**kwargs)
+    if key == "script_purity":
+        from .script_purity import ScriptPurityMetric
+
+        return ScriptPurityMetric(**kwargs)
     if key == "metricx24":
         from .metricx import MetricX24Metric
 

@@ -31,3 +31,11 @@ wmt24pp,en-es_MX,hy-mt2-1.8b,comet22,0.8247169046041866,960,499122d48c926d813280
 wmt24pp,en-es_MX,translategemma-4b,comet22,0.8277119982366761,960,5742f6466266bd08a0d163eb21b0c3be
 wmt24pp,es_MX-en,hy-mt2-1.8b,comet22,0.8372332338554164,960,b000077c0ac80180cfe4a68ca297f797
 wmt24pp,es_MX-en,translategemma-4b,comet22,0.835196418967098,960,9b8d65c30ebbb01352737e2fb6ff8eca
+wmt24pp,en-de_DE,hy-mt2-1.8b,script_purity,93.75,8,178ed59c72101a70bf05db3cc2b69a1b
+wmt24pp,en-de_DE,translategemma-4b,script_purity,100.0,8,b11e3984556f137018d9f2cb78bbb2b7
+wmt24pp,en-es_MX,hy-mt2-1.8b,script_purity,93.85416666666669,960,499122d48c926d8132801ea3a5fec2ad
+wmt24pp,en-es_MX,translategemma-4b,script_purity,100.0,960,5742f6466266bd08a0d163eb21b0c3be
+wmt24pp,es_MX-en,hy-mt2-1.8b,script_purity,95.83333333333331,960,b000077c0ac80180cfe4a68ca297f797
+wmt24pp,es_MX-en,translategemma-4b,script_purity,100.0,960,9b8d65c30ebbb01352737e2fb6ff8eca
+wmt25,en-ja_JP,hy-mt2-1.8b,script_purity,100.0,2,4780bf06ef3e90101df5beb3c3e976bf
+wmt25,en-ja_JP,translategemma-4b,script_purity,100.0,2,e082c165366a95a73d54db58f0ab3eb0
