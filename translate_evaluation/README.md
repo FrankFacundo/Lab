@@ -86,6 +86,12 @@ All comparisons orient every metric so higher = better (TER and MetricX are flip
 ## Notes
 
 - Runs on Apple Silicon (MPS) in bfloat16; also works on CUDA/CPU.
+- **Everything is cached** — relaunching the pipeline never recomputes:
+  `prepare` skips existing data files, `translate` resumes/skips per pair, and
+  `score` skips any (dataset, pair, model, metric) combo whose inputs
+  (hypotheses + data files) are byte-identical to what it scored before.
+  Force with `--rescore` (recompute requested combos, keep the rest) or
+  `--overwrite` (translate: redo pair; score: discard ALL previous scores).
 - `mteval score` merges into existing CSVs, so you can add metrics
   incrementally (e.g. run `llm_judge` later) and re-run `analyze`.
 - `llm_judge` defaults to `claude-opus-4-8` (override with `--judge-model`).
@@ -96,6 +102,12 @@ All comparisons orient every metric so higher = better (TER and MetricX are flip
   the default pairs are in the intersection. To add pairs, pass `--pairs`
   (any `en-xx_XX` config of [google/wmt24pp](https://huggingface.co/datasets/google/wmt24pp))
   and add the language name to `TARGET_LANGUAGE_NAMES` in `config.py` if missing.
+- **Reverse directions (X→en)**: pass a reversed wmt24pp pair like
+  `es_MX-en` — it loads `en-es_MX` and swaps the sides, translating the human
+  Spanish reference back into English and scoring against the original English.
+  Caveat: the source is then translationese (a human translation, not original
+  text), so reversed results are indicative rather than a WMT-blessed setup.
+  WMT25 has no Spanish pairs at all.
 - WMT25 is **document-level**: segments are whole paragraphs/articles (median
   ~800 chars, max ~28k). `translate` defaults to `--max-new-tokens 4096` there
   (vs 1024 for WMT24++); use `--max-new-tokens 8192` to be safe on the literary

@@ -18,15 +18,23 @@ from .config import SEED, WMT24PP_DATASET, WMT25_URL, data_dir
 
 
 def _wmt24pp_rows(pair: str) -> list[dict]:
+    """Load a wmt24pp pair; 'xx_XX-en' loads 'en-xx_XX' with the direction reversed.
+
+    Reversed pairs translate the human (post-edited) target back into English and
+    score against the original English source. Caveat: the source side is then
+    translationese, so reversed results are indicative, not a WMT-blessed setup.
+    """
     from datasets import load_dataset
 
-    ds = load_dataset(WMT24PP_DATASET, pair, split="train")
+    reverse = pair.endswith("-en")
+    hf_config = f"en-{pair.removesuffix('-en')}" if reverse else pair
+    ds = load_dataset(WMT24PP_DATASET, hf_config, split="train")
     return [
         {
             "segment_id": r["segment_id"],
             "domain": r["domain"],
-            "source": r["source"],
-            "reference": r["target"],  # human post-edited reference
+            "source": r["target"] if reverse else r["source"],
+            "reference": r["source"] if reverse else r["target"],
         }
         for r in ds
         if not r["is_bad_source"] and r["domain"] != "canary"

@@ -44,6 +44,7 @@ DEFAULT_MAX_NEW_TOKENS = {"wmt24pp": 1024, "wmt25": 4096}
 
 # English language names used in Hy-MT2's translation prompt.
 TARGET_LANGUAGE_NAMES = {
+    "en": "English",
     "ar_EG": "Arabic",
     "bho_IN": "Bhojpuri",
     "bn_BD": "Bengali",

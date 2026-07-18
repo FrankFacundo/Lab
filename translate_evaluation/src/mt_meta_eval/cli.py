@@ -71,6 +71,21 @@ def _load_hypotheses(model_key: str, dataset: str, pair: str) -> dict:
         return {r["segment_id"]: r["hypothesis"] for r in map(json.loads, f)}
 
 
+def _inputs_md5(model_key: str, dataset: str, pair: str) -> str:
+    """Fingerprint of everything a score depends on: hypotheses + prepared data."""
+    import hashlib
+
+    from .config import data_dir
+
+    h = hashlib.md5()
+    for path in (
+        TRANSLATIONS_DIR / model_key / dataset / f"{pair}.jsonl",
+        data_dir(dataset) / f"{pair}.jsonl",
+    ):
+        h.update(path.read_bytes() if path.exists() else b"missing")
+    return h.hexdigest()
+
+
 def cmd_score(args):
     import pandas as pd
 
@@ -78,6 +93,19 @@ def cmd_score(args):
     from .metrics import get_metric
 
     pairs = _resolve_pairs(args)
+    sys_path = SCORES_DIR / "system_scores.csv"
+
+    # Results cache: a (dataset, pair, model, metric) combo is skipped when it
+    # was already scored against byte-identical hypotheses (--rescore forces).
+    cache: dict[tuple, str] = {}
+    if sys_path.exists() and not args.overwrite and not args.rescore:
+        prev = pd.read_csv(sys_path)
+        if "hyp_md5" in prev.columns:
+            cache = {
+                (r.dataset, r.pair, r.model, r.metric): r.hyp_md5
+                for r in prev.itertuples()
+            }
+
     seg_rows, sys_rows = [], []
     for metric_key in args.metrics:
         kwargs = {}
@@ -89,6 +117,14 @@ def cmd_score(args):
                 data = load_pair(args.dataset, pair)
                 metric.pair = pair
                 for model_key in args.models:
+                    hyp_md5 = _inputs_md5(model_key, args.dataset, pair)
+                    key = (args.dataset, pair, model_key, metric_key)
+                    if cache.get(key) == hyp_md5:
+                        print(
+                            f"[score] cached  {metric_key} | {model_key} | "
+                            f"{args.dataset}/{pair} (unchanged, skipping)"
+                        )
+                        continue
                     hyps_by_id = _load_hypotheses(model_key, args.dataset, pair)
                     rows = [r for r in data if r["segment_id"] in hyps_by_id]
                     sources = [r["source"] for r in rows]
@@ -121,6 +157,7 @@ def cmd_score(args):
                             "metric": metric_key,
                             "score": corpus,
                             "n_segments": len(rows),
+                            "hyp_md5": hyp_md5,
                         }
                     )
         except Exception as e:
@@ -129,9 +166,12 @@ def cmd_score(args):
             seg_rows = [r for r in seg_rows if r["metric"] != metric_key]
             sys_rows = [r for r in sys_rows if r["metric"] != metric_key]
 
+    if not sys_rows:
+        print("[score] nothing to do — all requested results are cached")
+        return
+
     SCORES_DIR.mkdir(parents=True, exist_ok=True)
     seg_path = SCORES_DIR / "segment_scores.csv"
-    sys_path = SCORES_DIR / "system_scores.csv"
 
     seg_new = pd.DataFrame(seg_rows)
     sys_new = pd.DataFrame(sys_rows)
@@ -197,7 +237,16 @@ def main():
     p.add_argument("--models", nargs="+", default=MODEL_KEYS, choices=MODEL_KEYS)
     p.add_argument("--metrics", nargs="+", default=DEFAULT_METRICS, choices=ALL_METRICS)
     p.add_argument("--judge-model", default="claude-opus-4-8")
-    p.add_argument("--overwrite", action="store_true")
+    p.add_argument(
+        "--rescore",
+        action="store_true",
+        help="recompute the requested combos even if cached (other results kept)",
+    )
+    p.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="discard ALL previous scores and start the CSVs fresh",
+    )
     p.set_defaults(func=cmd_score)
 
     p = sub.add_parser("analyze", help="meta-evaluation report of metric (dis)agreement")

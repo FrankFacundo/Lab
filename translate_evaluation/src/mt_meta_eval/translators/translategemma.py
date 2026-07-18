@@ -26,7 +26,7 @@ class TranslateGemmaTranslator(Translator):
         self.model.eval()
 
     def translate_batch(self, sources: list[str], pair: str) -> list[str]:
-        src = source_code(pair)
+        src = source_code(pair).replace("_", "-")  # es_MX -> es-MX
         tgt = target_code(pair).replace("_", "-")  # de_DE -> de-DE
         conversations = [
             [
