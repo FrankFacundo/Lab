@@ -1,0 +1,13 @@
+dataset,metric_a,metric_b,n_duels,agreement
+wmt24pp,bleu,chrf++,1801,0.849
+wmt24pp,bleu,comet22,1799,0.644
+wmt24pp,bleu,ter,1646,0.882
+wmt24pp,chrf++,comet22,1859,0.684
+wmt24pp,chrf++,ter,1662,0.856
+wmt24pp,comet22,ter,1659,0.673
+wmt25,bleu,chrf++,2,0.5
+wmt25,bleu,comet22,2,1.0
+wmt25,bleu,ter,2,0.5
+wmt25,chrf++,comet22,2,0.5
+wmt25,chrf++,ter,2,1.0
+wmt25,comet22,ter,2,0.5

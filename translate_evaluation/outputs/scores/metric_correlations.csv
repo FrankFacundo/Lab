@@ -1,0 +1,13 @@
+dataset,metric_a,metric_b,n,pearson,spearman,kendall
+wmt24pp,bleu,chrf++,3856,0.854,0.887,0.723
+wmt24pp,bleu,comet22,3856,0.501,0.457,0.325
+wmt24pp,bleu,ter,3856,0.742,0.875,0.708
+wmt24pp,chrf++,comet22,3856,0.604,0.549,0.401
+wmt24pp,chrf++,ter,3856,0.721,0.822,0.653
+wmt24pp,comet22,ter,3856,0.479,0.491,0.355
+wmt25,bleu,chrf++,4,0.994,0.8,0.667
+wmt25,bleu,comet22,4,0.944,1.0,1.0
+wmt25,bleu,ter,4,-0.319,-0.8,-0.667
+wmt25,chrf++,comet22,4,0.947,0.8,0.667
+wmt25,chrf++,ter,4,-0.353,-0.6,-0.333
+wmt25,comet22,ter,4,-0.611,-0.8,-0.667
