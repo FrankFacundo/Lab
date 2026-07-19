@@ -33,12 +33,17 @@ def main():
         args.model_path, device_map=device, dtype=torch.bfloat16
     )
 
+    import transformers
+    from tqdm import tqdm
+
+    transformers.logging.set_verbosity_error()  # silence per-item generate logs
+
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     with open(args.tasks) as f:
         tasks = [json.loads(line) for line in f]
 
-    for t in tasks:
+    for t in tqdm(tasks, desc="qwen3-tts", unit="item"):
         try:
             wavs, sr = model.generate_voice_clone(
                 text=t["text"],

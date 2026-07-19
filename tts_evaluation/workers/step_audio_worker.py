@@ -27,10 +27,16 @@ def main():
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    try:
+        from tqdm import tqdm
+    except ImportError:  # keep worker usable in a minimal env
+        def tqdm(x, **kw):
+            return x
+
     with open(args.tasks) as f:
         tasks = [json.loads(line) for line in f]
 
-    for t in tasks:
+    for t in tqdm(tasks, desc="step-audio-editx", unit="item"):
         try:
             with tempfile.TemporaryDirectory() as td:
                 r = subprocess.run(

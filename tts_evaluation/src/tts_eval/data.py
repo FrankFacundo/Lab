@@ -79,25 +79,30 @@ def _seedtts_rows(lang: str) -> list[dict]:
 
 def _mls_rows(lang: str, limit: int | None) -> list[dict]:
     from datasets import load_dataset
+    from tqdm import tqdm
 
     n_items = limit or 200
     wav_dir = data_dir("mls") / "wavs" / lang
     wav_dir.mkdir(parents=True, exist_ok=True)
 
-    # Stream the test split, bucket utterances by speaker until we have enough
-    # speakers with >=2 usable utterances (target + 3-10s reference).
+    # Stream the test split and pair consecutive utterances of the same
+    # speaker: the SHORTER one becomes the cloning reference (3-20 s; MLS
+    # audiobook utterances are mostly 10-20 s, so a strict seed-tts-style
+    # 3-10 s window would reject nearly everything), the other the target.
     ds = load_dataset(MLS_DATASET, MLS_CONFIGS[lang], split="test", streaming=True)
     by_speaker: dict = {}
     rows = []
+    bar = tqdm(total=n_items, desc=f"building {lang} pairs", unit="pair")
     for ex in ds:
         spk = ex["speaker_id"]
         dur = len(ex["audio"]["array"]) / ex["audio"]["sampling_rate"]
         by_speaker.setdefault(spk, []).append((ex, dur))
         bucket = by_speaker[spk]
-        if len(bucket) == 2:  # first = reference (if 3-10 s), second = target
+        if len(bucket) == 2:
+            bucket.sort(key=lambda t: t[1])  # shorter first -> reference
             (ref_ex, ref_dur), (tgt_ex, tgt_dur) = bucket
-            if not (3.0 <= ref_dur <= 10.0):
-                bucket.pop(0)  # drop unusable ref, wait for another utterance
+            if not (3.0 <= ref_dur <= 20.0):
+                bucket.pop(0)
                 continue
             if tgt_dur > 30.0:
                 bucket.pop(1)
@@ -117,9 +122,11 @@ def _mls_rows(lang: str, limit: int | None) -> list[dict]:
                     "gt_audio": str(gt_path),
                 }
             )
-            by_speaker[spk] = []  # one pair per speaker pass; allow more later
+            by_speaker[spk] = []  # allow further pairs from the same speaker
+            bar.update(1)
             if len(rows) >= n_items:
                 break
+    bar.close()
     return rows
 
 
