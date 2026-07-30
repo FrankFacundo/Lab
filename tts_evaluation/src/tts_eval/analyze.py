@@ -114,6 +114,162 @@ def preference_agreement(seg_df):
     return pd.DataFrame(rows)
 
 
+def _score_label(metric: str, score: float) -> str:
+    if metric.startswith("wer_"):
+        return f"{score:.3f}%"
+    return f"{score:.3f}"
+
+
+def system_commentary(system_df):
+    """Render a compact, data-driven interpretation of the system table."""
+    labels = {
+        "sim_wavlm": "WavLM similarity",
+        "utmos": "UTMOS",
+        "wer_whisper": "Whisper WER",
+        "wer_qwen3asr": "Qwen3-ASR WER",
+    }
+    rows = []
+    oriented = _oriented(system_df)
+    for (dataset, lang), ds_df in oriented.groupby(["dataset", "lang"]):
+        comparisons = []
+        for metric, grp in ds_df.groupby("metric"):
+            ranked = grp.sort_values("oriented_score", ascending=False)
+            if len(ranked) < 2:
+                continue
+            winner, runner_up = ranked.iloc[0], ranked.iloc[1]
+            margin = abs(float(winner["score"]) - float(runner_up["score"]))
+            direction = "lower" if not HIGHER_IS_BETTER.get(metric, True) else "higher"
+            if round(margin, 3) == 0:
+                comparison = (
+                    f"{labels.get(metric, metric)} is effectively tied at the displayed "
+                    f"precision ({winner['model']} leads by {margin:.6f} unrounded)"
+                )
+            else:
+                unit = " percentage points" if metric.startswith("wer_") else ""
+                comparison = (
+                    f"{labels.get(metric, metric)} favors {winner['model']} "
+                    f"({_score_label(metric, winner['score'])} vs "
+                    f"{_score_label(metric, runner_up['score'])}; "
+                    f"{margin:.3f}{unit} {direction})"
+                )
+            comparisons.append(comparison)
+        rows.append(f"- **{dataset}/{lang}:** " + "; ".join(comparisons) + ".")
+    return rows
+
+
+def correlation_commentary(corr_tbl):
+    """Summarize the strongest observed relationships without overclaiming."""
+    if corr_tbl.empty:
+        return ["- Not enough paired observations were available to interpret correlations."]
+    pearson_row = corr_tbl.loc[corr_tbl["pearson"].abs().idxmax()]
+    spearman_row = corr_tbl.loc[corr_tbl["spearman"].abs().idxmax()]
+    return [
+        (
+            f"- All reported relationships are weak: the largest absolute Pearson "
+            f"correlation is {abs(pearson_row['pearson']):.3f} "
+            f"({pearson_row['dataset']}/{pearson_row['lang']}, "
+            f"{pearson_row['metric_a']} vs {pearson_row['metric_b']}), and the "
+            f"largest absolute Spearman correlation is "
+            f"{abs(spearman_row['spearman']):.3f} "
+            f"({spearman_row['dataset']}/{spearman_row['lang']}, "
+            f"{spearman_row['metric_a']} vs {spearman_row['metric_b']})."
+        ),
+        (
+            "- In practical terms, intelligibility, speaker identity, and predicted "
+            "naturalness are measuring different failure modes; a strong score on one "
+            "does not reliably imply a strong score on another."
+        ),
+    ]
+
+
+def preference_commentary(seg_df, pref_tbl):
+    """Explain agreement rates and expose how many WER comparisons were ties."""
+    if pref_tbl.empty:
+        return ["- Not enough model duels were available to measure preference agreement."]
+    lowest = pref_tbl.loc[pref_tbl["agreement"].idxmin()]
+    highest = pref_tbl.loc[pref_tbl["agreement"].idxmax()]
+    lines = [
+        (
+            f"- Agreement ranges from {lowest['agreement']:.3f} "
+            f"({lowest['dataset']}/{lowest['lang']}, {lowest['metric_a']} vs "
+            f"{lowest['metric_b']}) to {highest['agreement']:.3f} "
+            f"({highest['dataset']}/{highest['lang']}, {highest['metric_a']} vs "
+            f"{highest['metric_b']}). Values this close to 0.5 indicate that metric "
+            "pairs often choose different model outputs on the same item."
+        ),
+        (
+            "- `n_duels` excludes comparisons where either metric ties, so small values "
+            "should not be read as equally strong evidence."
+        ),
+    ]
+
+    wer = seg_df[seg_df["metric"] == "wer_whisper"]
+    tie_notes = []
+    for (dataset, lang), grp in wer.groupby(["dataset", "lang"]):
+        wide = grp.pivot_table(index="item_id", columns="model", values="score").dropna()
+        if wide.shape[1] != 2:
+            continue
+        ties = int(np.isclose(wide.iloc[:, 0], wide.iloc[:, 1]).sum())
+        tie_notes.append(f"{dataset}/{lang}: {ties}/{len(wide)}")
+    if tie_notes:
+        lines.append(
+            "- Whisper WER produces many exact model ties ("
+            + ", ".join(tie_notes)
+            + "); this is especially important when interpreting agreement on the "
+            "English set."
+        )
+    return lines
+
+
+def conclusion_commentary(win_tbl):
+    """Build conclusions from the current set of system-level winners."""
+    winner_counts = win_tbl["winner"].value_counts()
+    leader = winner_counts.index[0]
+    total = int(winner_counts.sum())
+    unanimous = (
+        win_tbl.groupby(["dataset", "lang"])["winner"]
+        .nunique()
+        .loc[lambda s: s == 1]
+        .index
+    )
+    unanimous_labels = ", ".join(f"{d}/{l}" for d, l in unanimous) or "none"
+
+    consistent_metrics = []
+    for metric, grp in win_tbl.groupby("metric"):
+        if grp["winner"].nunique() == 1:
+            consistent_metrics.append(f"{metric} ({grp.iloc[0]['winner']})")
+    consistent_text = ", ".join(consistent_metrics) or "none"
+
+    return [
+        (
+            f"- **Most consistent overall system:** {leader} wins "
+            f"{int(winner_counts.iloc[0])} of {total} system-level "
+            "dataset/language/metric comparisons. This is a breadth result, not proof "
+            "of universal superiority."
+        ),
+        (
+            f"- **Full metric consensus:** {unanimous_labels}. On the remaining tracks, "
+            "the preferred system changes with the evaluation objective."
+        ),
+        (
+            f"- **Metric with a consistent winner across tracks:** {consistent_text}. "
+            "Margins still matter: several differences are small enough that listening "
+            "tests or repeated samples could change the practical conclusion."
+        ),
+        (
+            "- **Selection guidance:** optimize Whisper WER when exact wording is the "
+            "priority, WavLM similarity when voice identity is the priority, and UTMOS "
+            "when naturalness is the priority. Do not average the raw values directly "
+            "because their scales and meanings differ."
+        ),
+        (
+            "- **Recommended next step:** validate the system-level result with a "
+            "blinded human listening test covering naturalness, speaker similarity, "
+            "and intelligibility as separate questions."
+        ),
+    ]
+
+
 def write_report():
     seg_df = pd.read_csv(SCORES_DIR / "segment_scores.csv")
     system_df = pd.read_csv(SCORES_DIR / "system_scores.csv")
@@ -145,6 +301,10 @@ def write_report():
         "",
         sys_tbl.to_markdown(),
         "",
+        "### Commentary",
+        "",
+        *system_commentary(system_df),
+        "",
         "## 2. Which model does each metric prefer?",
         "",
         win_tbl.to_markdown(index=False),
@@ -155,13 +315,58 @@ def write_report():
             else "**All metrics agree on the winning model for every (dataset, lang).**"
         ),
         "",
+        (
+            "A zero margin after rounding should be treated as an operational tie, "
+            "even though the unrounded value forces a winner in the table."
+        ),
+        "",
         "## 3. Item-level correlation between metrics",
         "",
         corr_tbl.to_markdown(index=False),
         "",
+        "### Commentary",
+        "",
+        *correlation_commentary(corr_tbl),
+        "",
         "## 4. Pairwise preference agreement (pooled over model duels)",
         "",
         pref_tbl.to_markdown(index=False),
+        "",
+        "### Commentary",
+        "",
+        *preference_commentary(seg_df, pref_tbl),
+        "",
+        "## 5. Conclusions",
+        "",
+        *conclusion_commentary(win_tbl),
+        "",
+        "## 6. Limitations",
+        "",
+        (
+            "- UTMOS22 was trained on English MOS data. Its Spanish and French scores "
+            "are best interpreted as within-language model comparisons, not absolute "
+            "human-quality ratings."
+        ),
+        (
+            "- WavLM similarity is a learned speaker-verification proxy. Very high "
+            "MLS scores suggest a possible ceiling effect, so differences of only a "
+            "few thousandths may have limited perceptual significance."
+        ),
+        (
+            "- Whisper WER depends on the ASR model and text normalization. It can miss "
+            "prosody, pronunciation quality, punctuation, and other audible defects "
+            "when the recognized word sequence is unchanged."
+        ),
+        (
+            "- The results cover 200 items per dataset/language/model in this run and "
+            "do not include confidence intervals or significance tests. Small margins "
+            "should therefore be treated as directional rather than definitive."
+        ),
+        (
+            "- Correlations pool both systems within each dataset/language. They describe "
+            "association among metric scores, not causal relationships or agreement "
+            "with human preference."
+        ),
         "",
     ]
     report_path = REPORT_DIR / "report.md"
